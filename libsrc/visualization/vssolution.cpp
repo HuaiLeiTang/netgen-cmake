@@ -70,7 +70,6 @@ namespace netgen
   void VisualSceneSolution :: AddSolutionData (SolData * sd)
   {
     NgLock meshlock1 (mesh->MajorMutex(), 1);
-
     int funcnr = -1;
     for (int i = 0; i < soldata.Size(); i++)
       {
@@ -89,7 +88,7 @@ namespace netgen
         funcnr = soldata.Size()-1;
       }
     
-    SolData * nsd = soldata[funcnr];
+    SolData * nsd = soldata[funcnr]; 
 
     nsd->size = 0;
     if (mesh)
@@ -593,7 +592,8 @@ namespace netgen
   }
   
 
-
+  
+  /*
   void VisualSceneSolution :: RealVec3d (const double * values, Vec3d & v, 
                                          bool iscomplex, bool imag)
   {
@@ -619,7 +619,32 @@ namespace netgen
           }
       }
   }
-
+  */
+  Vec<3>  VisualSceneSolution :: RealVec3d (const double * values, 
+					    bool iscomplex, bool imag)
+  {
+    Vec<3> v;
+    if (!iscomplex)
+      {
+	for (int j = 0; j < 3; j++)
+	  v(j) = values[j];
+      }
+    else
+      {
+        if (!imag)
+          {
+	    for (int j = 0; j < 3; j++)
+	      v(j) = values[2*j];
+          }
+        else
+          {
+	    for (int j = 0; j < 3; j++)
+	      v(j) = values[2*j+1];
+          }
+      }
+    return v;
+  }
+  
 
   void VisualSceneSolution :: RealVec3d (const double * values, Vec3d & v, 
                                          bool iscomplex, double phaser, double phasei)
@@ -804,7 +829,8 @@ namespace netgen
 
                 bool drawelem = 
                   GetValues (vsol, p.elnr, p.lami(0), p.lami(1), p.lami(2), values);
-                RealVec3d (values, v, vsol->iscomplex, imag_part);
+                // RealVec3d (values, v, vsol->iscomplex, imag_part);
+		v = RealVec3d (values, vsol->iscomplex, imag_part);
 
                 double val = v.Length();
 
@@ -3487,7 +3513,10 @@ namespace netgen
     Vec<3> def;
     if (deform && vecfunction != -1)
       {
-        GetSurfValues (soldata[vecfunction], elnr, facetnr, lam1, lam2,  &def(0));
+        // GetSurfValues (soldata[vecfunction], elnr, facetnr, lam1, lam2,  &def(0));
+	double values[6];
+	GetSurfValues (soldata[vecfunction], elnr, facetnr, lam1, lam2,  values);
+	def = RealVec3d (values, soldata[vecfunction]->iscomplex, imag_part);
         def *= scaledeform;
 
         if (soldata[vecfunction]->components == 2) def(2) = 0;
@@ -3935,7 +3964,6 @@ namespace netgen
     if (scalfunction != -1) 
       sol = soldata[scalfunction];
 
-    
     if (sol -> draw_volume)
       {
 	glBegin (GL_TRIANGLES);
@@ -3961,10 +3989,10 @@ namespace netgen
     // complex<double> valc[3];
     int lastelnr = -1;
     int nlp = -1;
+    bool ok = false;
 
     for (int i = 0; i < trigs.Size(); i++)
       {
-	bool ok; //  = true;
         const ClipPlaneTrig & trig = trigs[i];
 	if (trig.elnr != lastelnr)
 	  {
@@ -4200,7 +4228,7 @@ namespace netgen
     Vec<3> p1p2 = p2 - p1;
 
     p1p2.Normalize();
-    Vec<3> p2p1 = -p1p2;
+    // Vec<3> p2p1 = -p1p2;
 
     Vec<3> t1 = p1p2.GetNormal();
     Vec<3> t2 = Cross (p1p2, t1);
@@ -4364,7 +4392,7 @@ namespace netgen
             int pointpos; // SZ 
             const char * pch = strchr(scalname,':');
             pointpos = int(pch-scalname+1);
-
+	    
             for (int i = 0; i < vssolution.soldata.Size(); i++)
               {
                 if ( (strlen (vssolution.soldata[i]->name) == pointpos-1) &&
@@ -4385,15 +4413,10 @@ namespace netgen
 		    scalname = Tcl_GetVar (interp, "::visoptions.scalfunction", TCL_GLOBAL_ONLY);
                   }
                 if (strcmp (vssolution.soldata[i]->name, vecname) == 0)
-                  {
-                    vssolution.vecfunction = i;
-                    //cout  << "set vecfunction to " << i << endl;
-                  }
+		  vssolution.vecfunction = i;
+
                 if (strcmp (vssolution.soldata[i]->name, fieldlines_vecname) == 0)
-                  {
-                    vssolution.fieldlines_vecfunction = i;
-                    //cout  << "set fieldlines-vecfunction to " << i << endl;
-                  }
+		  vssolution.fieldlines_vecfunction = i;
               }
 
             if(vssolution.fieldlines_vecfunction != -1 &&

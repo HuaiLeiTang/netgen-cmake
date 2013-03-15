@@ -92,7 +92,7 @@ namespace netgen
   }
   */
 
-  extern NetgenGeometry * ng_geometry;
+  extern AutoPtr<NetgenGeometry> ng_geometry;
   extern AutoPtr<Mesh> mesh;
   Tcl_Interp * tcl_interp;
 
@@ -190,8 +190,11 @@ namespace netgen
 
     if (strcmp (argv[1], "geom") == 0)
       {
+        /*
 	delete ng_geometry;
 	ng_geometry = new NetgenGeometry;
+        */
+        ng_geometry.Reset (new NetgenGeometry);
       }
 
     return TCL_OK;
@@ -219,11 +222,16 @@ namespace netgen
     PrintMessage (1, "load mesh from file ", filename);
 
     mesh.Reset (new Mesh());
-
     try
       {
-	ifstream infile(filename.c_str());
-	mesh -> Load(infile);
+        istream * infile;
+        if (filename.substr (filename.length()-3, 3) == ".gz")
+          infile = new igzstream (filename.c_str());
+        else
+          infile = new ifstream (filename.c_str());
+
+	// ifstream infile(filename.c_str());
+	mesh -> Load(*infile);
 
 #ifdef PARALLEL
 	MyMPI_SendCmd ("mesh");
@@ -232,15 +240,15 @@ namespace netgen
 
 	for (int i = 0; i < geometryregister.Size(); i++)
 	  {
-	    NetgenGeometry * hgeom = geometryregister[i]->LoadFromMeshFile (infile);
+	    NetgenGeometry * hgeom = geometryregister[i]->LoadFromMeshFile (*infile);
 	    if (hgeom)
 	      {
-		delete ng_geometry;
-		ng_geometry = hgeom;
+                ng_geometry.Reset (hgeom);
 		break;
 	      }
 	  }
-	
+        delete infile;
+
 	/*
 	string auxstring;
 	if(infile.good())
@@ -283,20 +291,22 @@ namespace netgen
 	return TCL_ERROR;
       }
 
-    const string filename (argv[1]);
+    string filename (argv[1]);
     PrintMessage (1, "Save mesh to file ", filename, ".... Please Wait!");
+    
+    ostream * outfile;
+    if (filename.substr (filename.length()-3, 3) == ".gz")
+      outfile = new ogzstream (filename.c_str());
+    else
+      outfile = new ofstream (filename.c_str());
 
-    ofstream outfile(filename.c_str());
-    mesh -> Save (outfile);
+    mesh -> Save (*outfile);
+    *outfile << endl << endl << "endmesh" << endl << endl;
 
-    outfile << endl << endl << "endmesh" << endl << endl;
+    if (ng_geometry)
+      ng_geometry -> SaveToMeshFile (*outfile);
 
-    ng_geometry -> SaveToMeshFile (outfile);
-    /*
-    CSGeometry * geometry = dynamic_cast<CSGeometry*> (ng_geometry);
-    if (geometry && geometry->GetNSurf()) geometry->SaveSurfaces(outfile);
-    */
-
+    delete outfile;
     PrintMessage (1, "Save mesh to file .... DONE!");
     return TCL_OK;
   }
@@ -315,7 +325,7 @@ namespace netgen
 
     try
       {
-	CSGeometry * geometry = dynamic_cast<CSGeometry*> (ng_geometry);
+	CSGeometry * geometry = dynamic_cast<CSGeometry*> (ng_geometry.Ptr());
     
 	//mesh -> Merge (filename);
 	ifstream infile(filename.c_str());
@@ -516,8 +526,9 @@ namespace netgen
 	    NetgenGeometry * hgeom = geometryregister[i]->Load (lgfilename);
 	    if (hgeom)
 	      {
-		delete ng_geometry;
-		ng_geometry = hgeom;
+                // delete ng_geometry;
+		// ng_geometry = hgeom;
+                ng_geometry.Reset (hgeom);
 		
 		mesh.Reset();
 		return TCL_OK;
@@ -968,7 +979,7 @@ namespace netgen
 
     if (argc >= 2) opt.minref = atoi (argv[1]);
 
-    ZRefinement (*mesh, ng_geometry, opt);
+    ZRefinement (*mesh, ng_geometry.Ptr(), opt);
 
     return TCL_OK;
   }
@@ -1275,7 +1286,7 @@ namespace netgen
 	  {
 	    ZRefinementOptions opt;
 	    opt.minref = 5;
-	    ZRefinement (*mesh, ng_geometry, opt);
+	    ZRefinement (*mesh, ng_geometry.Ptr(), opt);
 	    mesh -> SetNextMajorTimeStamp();
 	  }
 	
@@ -1799,7 +1810,7 @@ namespace netgen
 	  {
 	    for (int i = 0; i < geometryregister.Size(); i++)
 	      {
-		VisualScene * hvs = geometryregister[i]->GetVisualScene (ng_geometry);
+		VisualScene * hvs = geometryregister[i]->GetVisualScene (ng_geometry.Ptr());
 		if (hvs)
 		  {
 		    vs = hvs;
@@ -3065,6 +3076,7 @@ void PlayAnimFile(const char* name, int speed, int maxcnt)
 #endif
 
     mesh.Reset (NULL);
+    ng_geometry.Reset (NULL);
     
     if (testout != &cout)
       delete testout;
