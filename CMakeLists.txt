@@ -35,7 +35,7 @@ PROJECT(netgen)
 # Setup the Version Number for the build #
 ##########################################
 SET(NETGEN_VERSION_MAJOR 5)
-SET(NETGEN_VERSION_MINOR 0)
+SET(NETGEN_VERSION_MINOR 1)
 SET(NETGEN_VERSION_PATCH 0)
 # Note: Empty for official releases, set to -dev, -rc1, etc for development releases
 SET(NETGEN_VERSION_DEVEL -dev)
@@ -251,6 +251,16 @@ IF(TOGL1.7_FOUND)
 	
 	ADD_DEFINITIONS("-D${TOGL_WINDOWING_SYSTEM}")
 ENDIF(TOGL1.7_FOUND)
+
+
+################################
+# Try to find the ZLib Package #
+################################
+FIND_PACKAGE(ZLIB REQUIRED)
+IF(ZLIB_FOUND)
+	LIST(APPEND EXT_LIB_INCLUDES ${ZLIB_INCLUDE_DIRS})
+	LIST(APPEND EXT_LIB_LIBRARIES ${ZLIB_LIBRARIES})
+ENDIF(ZLIB_FOUND)
 
 
 ###########################################
