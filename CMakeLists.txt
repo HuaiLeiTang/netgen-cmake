@@ -75,6 +75,7 @@ MESSAGE(STATUS "Build type: ${BIT_WIDTH}bit")
 #####################################################
 # Specify the various options available to the user #
 #####################################################
+OPTION_WITH_DEFAULT(${PROJECT_NAME}_BUILD_GUI "Build the Graphical User Interface for Netgen" ON)
 OPTION_WITH_DEFAULT(${PROJECT_NAME}_BUILD_NGLIB_API "Build independent Netgen Library - nglib" ON)
 OPTION_WITH_DEFAULT(${PROJECT_NAME}_ENABLE_OPENCASCADE_SUPPORT "Build with OpenCascade support (for STEP, IGES support)" OFF)
 OPTION_WITH_DEFAULT(${PROJECT_NAME}_ENABLE_STL_SUPPORT "Build with STL support (for STL, STLB support)" ON)
@@ -200,57 +201,74 @@ ELSE(${PROJECT_NAME}_ENABLE_STATIC_BUILD)
 ENDIF(${PROJECT_NAME}_ENABLE_STATIC_BUILD)
 
 
-##################################
-# Try to find the TCL/Tk Package #
-##################################
-FIND_PACKAGE(TCL REQUIRED)
-IF(TCLTK_FOUND)
-	LIST(APPEND EXT_LIB_INCLUDES ${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH})
-	LIST(APPEND EXT_LIB_LIBRARIES ${TCL_LIBRARY} ${TK_LIBRARY})
-ENDIF(TCLTK_FOUND)
-
-
-###############################
-# Try to find the Tix Package #
-###############################
-FIND_PACKAGE(Tix REQUIRED)
-IF(TIX_FOUND)
-	LIST(APPEND EXT_LIB_INCLUDES ${TIX_INCLUDE_PATH})
-	LIST(APPEND EXT_LIB_LIBRARIES ${TIX_LIBRARY})
-ENDIF(TIX_FOUND)
-
-
-##################################
-# Try to find the OpenGL Package #
-##################################
-FIND_PACKAGE(OpenGL REQUIRED)
-IF(OPENGL_FOUND)
-	LIST(APPEND EXT_LIB_INCLUDES ${OPENGL_INCLUDE_DIR})
-	LIST(APPEND EXT_LIB_LIBRARIES ${OPENGL_LIBRARIES})
+IF(${PROJECT_NAME}_BUILD_GUI)
+	##################################
+	# Try to find the TCL/Tk Package #
+	##################################
+	FIND_PACKAGE(TCL REQUIRED)
+	IF(TCLTK_FOUND)
+		LIST(APPEND EXT_LIB_INCLUDES ${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH})
+		LIST(APPEND EXT_LIB_LIBRARIES ${TCL_LIBRARY} ${TK_LIBRARY})
+	ENDIF(TCLTK_FOUND)
 	
-	ADD_DEFINITIONS("-DOPENGL")
-ENDIF(OPENGL_FOUND)
+
+	###############################
+	# Try to find the Tix Package #
+	###############################
+	FIND_PACKAGE(Tix REQUIRED)
+	IF(TIX_FOUND)
+		LIST(APPEND EXT_LIB_INCLUDES ${TIX_INCLUDE_PATH})
+		LIST(APPEND EXT_LIB_LIBRARIES ${TIX_LIBRARY})
+	ENDIF(TIX_FOUND)
 
 
-####################################
-# Try to find the Togl-1.7 Package #
-####################################
-FIND_PACKAGE(Togl1.7 REQUIRED)
-IF(TOGL1.7_FOUND)
-	LIST(APPEND EXT_LIB_INCLUDES ${TOGL1.7_INCLUDE_PATH})
-	LIST(APPEND EXT_LIB_LIBRARIES ${TOGL1.7_LIBRARY})
+	##################################
+	# Try to find the OpenGL Package #
+	##################################
+	FIND_PACKAGE(OpenGL REQUIRED)
+	IF(OPENGL_FOUND)
+		LIST(APPEND EXT_LIB_INCLUDES ${OPENGL_INCLUDE_DIR})
+		LIST(APPEND EXT_LIB_LIBRARIES ${OPENGL_LIBRARIES})
+		
+		ADD_DEFINITIONS("-DOPENGL")
+	ENDIF(OPENGL_FOUND)
+
+
+	####################################
+	# Try to find the Togl-1.7 Package #
+	####################################
+	FIND_PACKAGE(Togl1.7 REQUIRED)
+	IF(TOGL1.7_FOUND)
+		LIST(APPEND EXT_LIB_INCLUDES ${TOGL1.7_INCLUDE_PATH})
+		LIST(APPEND EXT_LIB_LIBRARIES ${TOGL1.7_LIBRARY})
+		
+		# Setup the Togl Windowing System
+		IF(WIN32)
+			SET(TOGL_WINDOWING_SYSTEM "TOGL_WGL")
+		ELSEIF(APPLE)
+			SET(TOGL_WINDOWING_SYSTEM "TOGL_AGL")
+		ELSE(WIN32)
+			SET(TOGL_WINDOWING_SYSTEM "TOGL_X11")
+		ENDIF(WIN32)	
+		
+		ADD_DEFINITIONS("-D${TOGL_WINDOWING_SYSTEM}")
+	ENDIF(TOGL1.7_FOUND)
+ELSE(${PROJECT_NAME}_BUILD_GUI)
+	UNSET(TCL_INCLUDE_PATH CACHE)
+	UNSET(TK_INCLUDE_PATH CACHE)
+	UNSET(TIX_INCLUDE_PATH CACHE)
+	UNSET(TOGL1.7_INCLUDE_PATH CACHE)
+	UNSET(OPENGL_INCLUDE_DIR CACHE)
 	
-	# Setup the Togl Windowing System
-	IF(WIN32)
-		SET(TOGL_WINDOWING_SYSTEM "TOGL_WGL")
-	ELSEIF(APPLE)
-		SET(TOGL_WINDOWING_SYSTEM "TOGL_AGL")
-	ELSE(WIN32)
-		SET(TOGL_WINDOWING_SYSTEM "TOGL_X11")
-	ENDIF(WIN32)	
-	
-	ADD_DEFINITIONS("-D${TOGL_WINDOWING_SYSTEM}")
-ENDIF(TOGL1.7_FOUND)
+	UNSET(TCL_LIBRARY CACHE)
+	UNSET(TK_LIBRARY CACHE)
+	UNSET(TIX_LIBRARY CACHE)
+	UNSET(TOGL1.7_LIBRARY CACHE)
+	UNSET(OPENGL_LIBRARIES CACHE)
+
+	UNSET(TCL_TCLSH CACHE)
+	UNSET(TK_WISH CACHE)
+ENDIF(${PROJECT_NAME}_BUILD_GUI)
 
 
 ################################
@@ -430,7 +448,10 @@ ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/meshing)
 ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/interface)
 ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/csg)
 ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/geom2d)
-ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/visualization)
+
+IF(${PROJECT_NAME}_BUILD_GUI)
+	ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/visualization)
+ENDIF(${PROJECT_NAME}_BUILD_GUI)	
 
 IF(${PROJECT_NAME}_ENABLE_STL_SUPPORT)
 	ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/libsrc/stlgeom)
@@ -444,7 +465,9 @@ ENDIF(${PROJECT_NAME}_ENABLE_OPENCASCADE_SUPPORT AND OpenCASCADE_FOUND)
 ######################################
 # Create the main project executable #
 ######################################
-ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/ng)
+IF(${PROJECT_NAME}_BUILD_GUI)
+	ADD_SUBDIRECTORY(${NETGEN_BUILD_PATH}/ng)
+ENDIF(${PROJECT_NAME}_BUILD_GUI)
 
 
 ##########################
