@@ -12,7 +12,7 @@
 // #include <parallel.hpp>
 #include <visual.hpp>
 
-
+#include <limits>
 
 namespace netgen
 {
@@ -2380,6 +2380,9 @@ namespace netgen
   void VisualSceneSolution :: 
   GetMinMax (int funcnr, int comp, double & minv, double & maxv) const
   {
+    static int timer1 = NgProfiler::CreateTimer ("getminmax, vol");
+    static int timer2 = NgProfiler::CreateTimer ("getminmax, surf");
+
 #ifdef PARALLEL
     if (id == 0)
       {
@@ -2394,7 +2397,8 @@ namespace netgen
     // bool considerElem;
 
     bool hasit = false;
-    minv = 0; maxv = 1;
+    minv = numeric_limits<double>::max();
+    maxv = -numeric_limits<double>::max();
 
     if ((ntasks == 1) || (id > 0))
       if (funcnr != -1)
@@ -2403,20 +2407,39 @@ namespace netgen
 
         if (sol->draw_volume)
           {
+	    NgProfiler::RegionTimer reg1 (timer1);
+
             int ne = mesh->GetNE();
-            for (int i = 0; i < ne; i++)
+            double hmax = maxv; 
+            double hmin = minv; 
+
+#pragma omp parallel for reduction (max : hmax) reduction (min : hmin)
+            for (int i = 0; i < ne; i++) 
               {
                 bool considerElem = GetValue (sol, i, 0.333, 0.333, 0.333, comp, val);
                 if (considerElem)
                   {
-                    if (val > maxv || !hasit) maxv = val;
-                    if (val < minv || !hasit) minv = val;
-                    hasit = true;
+                    /*
+#pragma omp critical(getminmaxvol)
+                    {
+                      if (val > maxv || !hasit) maxv = val;
+                      if (val < minv || !hasit) minv = val;
+                      hasit = true;
+                    }
+                    */
+                    if (val > hmax) hmax = val;
+                    if (val < hmin) hmin = val;
                   }
               }
+
+            maxv = hmax;
+            minv = hmin;
+            // cout << "maxv = " << maxv << " =?= " << hmax << endl;
           }
         if (sol->draw_surface)
           {
+	    NgProfiler::RegionTimer reg2 (timer2);
+
             int nse = mesh->GetNSE();
             for (int i = 0; i < nse; i++)
               {
@@ -2427,8 +2450,8 @@ namespace netgen
 
                 if (considerElem)
                   {
-                    if (val > maxv || !hasit) maxv = val;
-                    if (val < minv || !hasit) minv = val;
+                    if (val > maxv) maxv = val;
+                    if (val < minv) minv = val;
                     hasit = true;
                   }
               }
