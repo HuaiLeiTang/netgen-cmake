@@ -409,6 +409,13 @@ STLGeometry *  STLTopology ::Load (istream & ist)
 		  if (readtrigs.Size() % 100000 == 0)
 		    PrintMessageCR (3, readtrigs.Size(), " triangles loaded\r");
 		}
+              else
+                {
+                  cout << "Skipping flat triangle " 
+                       << "l1 = " << Dist(pts[0], pts[1])
+                       << ", l2 = " << Dist(pts[0], pts[2])
+                       << ", l3 = " << Dist(pts[2], pts[1]) << endl;
+                }
 
 	    }
 	}
@@ -485,7 +492,7 @@ void STLTopology :: InitSTLGeometry(const Array<STLReadTriangle> & readtrigs)
 	  pointtree->GetIntersecting (pmin, pmax, pintersect);
 	  
 	  if (pintersect.Size() > 1)
-	    PrintError("too many close points");
+            PrintError("too many close points");
 	  int foundpos = -1;
 	  if (pintersect.Size())
 	    foundpos = pintersect[0];
