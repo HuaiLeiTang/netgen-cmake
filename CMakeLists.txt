@@ -35,7 +35,7 @@ PROJECT(netgen)
 # Setup the Version Number for the build #
 ##########################################
 SET(NETGEN_VERSION_MAJOR 5)
-SET(NETGEN_VERSION_MINOR 1)
+SET(NETGEN_VERSION_MINOR 2)
 SET(NETGEN_VERSION_PATCH 0)
 # Note: Empty for official releases, set to -dev, -rc1, etc for development releases
 SET(NETGEN_VERSION_DEVEL -dev)
