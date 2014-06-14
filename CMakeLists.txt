@@ -15,7 +15,11 @@
 # Basic initialisation for the CMake System #
 #############################################
 # Set the minimum version of cmake required to 2.7
-CMAKE_MINIMUM_REQUIRED(VERSION 2.7 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
+
+# Make sure that the current directory is also included 
+# into the list of includes
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # if CMAKE_BUILD_TYPE is specified use it; otherwise set the default
 # build type to "Release prior to calling project()
