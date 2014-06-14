@@ -1189,7 +1189,8 @@ namespace netgen
                   prop.SetParameter (s);
                   gp_Vec d1 = prop.D1().Normalized();
                   double cosalpha = fabs(d0*d1);
-                  if ((j == sections) || (cosalpha < cos(10.0/180.0*M_PI)))
+
+                  if ((j == sections) || (cosalpha > cos(15.0/180.0*M_PI)))
                   {
                      count++;
                      gp_Pnt p0 = c->Value (s_start);
@@ -1216,12 +1217,12 @@ namespace netgen
             {
                multithread.percent = (100*i)/double(nlines);
                Line & line = lines[i];
+			   int partner_id = -1;
 
                Box3d box;
                box.SetPoint (Point3d(line.p0));
                box.AddPoint (Point3d(line.p1));
-               double maxhline = max (mesh.GetH(box.PMin()),
-                  mesh.GetH(box.PMax()));
+               double maxhline = max (mesh.GetH(box.PMin()), mesh.GetH(box.PMax()));
                box.Increase(maxhline);
 
                double mindist = 1e99;
@@ -1236,7 +1237,11 @@ namespace netgen
                   if ((line.p0-lines[num].p1).Length2() < 1e-15) continue;
                   if ((line.p1-lines[num].p0).Length2() < 1e-15) continue;
                   if ((line.p1-lines[num].p1).Length2() < 1e-15) continue;
-                  mindist = min (mindist, line.Dist(lines[num]));
+				  if(line.Dist(lines[num]) <= mindist)
+				  {
+					  mindist = line.Dist(lines[num]);
+					  partner_id = num;
+				  }
                }
 
                mindist /= (occparam.resthcloseedgefac + VSMALL);
@@ -1249,7 +1254,8 @@ namespace netgen
                   mindist = 1e-3;
                }
 
-               mesh.RestrictLocalHLine(line.p0, line.p1, mindist);
+			   mesh.RestrictLocalHLine(line.p0, line.p1, mindist);
+			   if(partner_id > -1) mesh.RestrictLocalHLine(lines[partner_id].p0, lines[partner_id].p1, mindist);
             }
          }
 
