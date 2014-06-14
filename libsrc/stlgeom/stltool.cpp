@@ -778,11 +778,13 @@ void STLChart :: SetNormal (const Point<3> & apref, const Vec<3> & anormal)
   t2 = Cross (normal, t1);
 }
 
+/*
 Point<2> STLChart :: Project2d (const Point<3> & p3d) const
 {
   Vec<3> v = p3d-pref;
   return Point<2> (t1 * v, t2 * v);
 }
+*/
 
 
 
@@ -792,6 +794,8 @@ Point<2> STLChart :: Project2d (const Point<3> & p3d) const
   int i1, i2;
 public:
 */
+
+/*
 STLBoundarySeg :: 
 STLBoundarySeg (int ai1, int ai2, const Array<Point<3> > & points,
 		const STLChart * chart)
@@ -809,6 +813,7 @@ STLBoundarySeg (int ai1, int ai2, const Array<Point<3> > & points,
   boundingbox.Set (p2d1);
   boundingbox.Add (p2d2);
 }
+*/
 
 void STLBoundarySeg :: Swap ()
 {
@@ -894,10 +899,10 @@ void STLBoundary ::AddTriangle(const STLTriangle & t)
 int STLBoundary :: TestSeg(const Point<3>& p1, const Point<3> & p2, const Vec<3> & sn, 
 			   double sinchartangle, int divisions, Array<Point<3> >& points, double eps)
 {
-
   if (usechartnormal)
     return TestSegChartNV (p1, p2, sn);
 
+#ifdef NONE
   // for statistics
   {
     int i;
@@ -936,7 +941,7 @@ int STLBoundary :: TestSeg(const Point<3>& p1, const Point<3> & p2, const Vec<3>
 	*/
       }
   }
-
+#endif
 
   int i,j,k;
   Point<3> seg1p/*, seg2p*/;
@@ -1087,6 +1092,9 @@ int STLBoundary :: TestSeg(const Point<3>& p1, const Point<3> & p2, const Vec<3>
 int STLBoundary :: TestSegChartNV(const Point3d & p1, const Point3d& p2, 
 				  const Vec3d& sn)
 {
+  int timer = NgProfiler::CreateTimer ("TestSegChartNV");
+  NgProfiler::StartTimer (timer);
+
   int nseg = NOSegments();
 
   Point<2> p2d1 = chart->Project2d (p1);
@@ -1101,13 +1109,21 @@ int STLBoundary :: TestSegChartNV(const Point3d & p1, const Point3d& p2,
   double eps = 1e-3;
   bool ok = true;
 
+  /*
+  static long int cnt = 0;
+  static long int totnseg = 0;
+  totnseg += nseg;
+  cnt++;
+  if ( (cnt % 100000) == 0)
+  cout << "avg nseg = " << double(totnseg)/cnt << endl;
+  */
+
   for (int j = 1; j <= nseg; j++)
     {
-      if (!ok) continue;
       const STLBoundarySeg & seg = GetSegment(j);
 
-      if (!box2d.Intersect (seg.BoundingBox())) continue;
       if (seg.IsSmoothEdge()) continue;
+      if (!box2d.Intersect (seg.BoundingBox())) continue;
 
       const Point<2> & sp1 = seg.P2D1();
       const Point<2> & sp2 = seg.P2D2();
@@ -1115,13 +1131,17 @@ int STLBoundary :: TestSegChartNV(const Point3d & p1, const Point3d& p2,
       Line2d l2 (sp1, sp2);
       double lam1, lam2;
       
-      int err =
-	CrossPointBarycentric (l1, l2, lam1, lam2);
+      int err = CrossPointBarycentric (l1, l2, lam1, lam2);
 
       if (!err && lam1 > eps && lam1 < 1-eps &&
 	  lam2 > eps && lam2 < 1-eps)
-	ok = false;
+        {
+          ok = false;
+          break;
+        }
     }
+
+  NgProfiler::StopTimer (timer);
 
   return ok;
 }

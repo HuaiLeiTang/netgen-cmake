@@ -652,16 +652,16 @@ namespace netgen
 
 	      for (int i2 = 0; i2 < edgenrs.Size(); i2++)
 		{
-		  PointIndex pi1 = el[edges[i2][0]];
-		  PointIndex pi2 = el[edges[i2][1]];
+		  // PointIndex pi1 = el[edges[i2][0]];
+		  // PointIndex pi2 = el[edges[i2][1]];
 
-		  bool swap = pi1 > pi2;
+		  // bool swap = pi1 > pi2;
 		
-		  Point<3> p1 = mesh[pi1];
-		  Point<3> p2 = mesh[pi2];
+		  // Point<3> p1 = mesh[pi1];
+		  // Point<3> p2 = mesh[pi2];
 		
-		  int order1 = edgeorder[edgenrs[i2]];
-		  int ndof = max (0, order1-1);
+		  // int order1 = edgeorder[edgenrs[i2]];
+		  // int ndof = max (0, order1-1);
 
 		  surfnr[edgenrs[i2]] = mesh.GetFaceDescriptor(el.GetIndex()).SurfNr();
 		  gi0[edgenrs[i2]] = el.GeomInfoPi(edges[i2][0]+1);
@@ -1163,7 +1163,7 @@ namespace netgen
 		    for (int k = 0; k < verts.Size(); k++)
 		      pp += lami[k] * Vec<3> (mesh.Point(verts[k]));
 
-		    const ELEMENT_EDGE * edges = MeshTopology::GetEdges0 (TRIG);
+		    // const ELEMENT_EDGE * edges = MeshTopology::GetEdges0 (TRIG);
 		    for (int k = 0; k < edgenrs.Size(); k++)
 		      {
 			int eorder = edgeorder[edgenrs[k]];
@@ -1507,6 +1507,7 @@ namespace netgen
 
   bool CurvedElements :: IsSurfaceElementCurved (SurfaceElementIndex elnr) const
   {
+    if (mesh[elnr].GetType() != TRIG) return true;
     if (!IsHighOrder()) return false;
 
     if (mesh.coarsemesh)
@@ -1597,9 +1598,6 @@ namespace netgen
     
 
 
-    Vector shapes;
-    MatrixFixWidth<2> dshapes;
-    Array<Vec<3> > coefs;
 
     const Element2d & el = mesh[elnr];
     ELEMENT_TYPE type = el.GetType();
@@ -1656,6 +1654,13 @@ namespace netgen
 	    firsttry = false;
 	  }
       }
+
+    ArrayMem<Vec<3>,100> coefs(info.ndof);
+    ArrayMem<double, 100> shapes_mem(info.ndof);
+    Vector shapes(info.ndof, &shapes_mem[0]);
+    ArrayMem<double, 200> dshapes_mem(2*info.ndof);
+    MatrixFixWidth<2> dshapes(info.ndof, &dshapes_mem[0]);
+
 
     CalcElementShapes (info, xi, shapes);
     GetCoefficients (info, coefs);
@@ -3254,10 +3259,6 @@ namespace netgen
 	return;
       }
 
-    Vector shapes;
-    MatrixFixWidth<2> dshapes;
-    Array<Vec<DIM_SPACE> > coefs;
-
 
     const Element2d & el = mesh[elnr];
     ELEMENT_TYPE type = el.GetType();
@@ -3332,7 +3333,16 @@ namespace netgen
 
 // THESE LAST LINES ARE COPIED FROM CurvedElements::CalcSurfaceTransformation
 
+    ArrayMem<Vec<DIM_SPACE>,100> coefs(info.ndof);
     GetCoefficients (info, coefs);
+    
+    ArrayMem<double, 100> shapes_mem(info.ndof);
+    Vector shapes(info.ndof, &shapes_mem[0]);
+
+    // ArrayMem<double, 100> dshapes_mem(info.ndof*2);
+    MatrixFixWidth<2> dshapes; // (info.ndof,&shapes_mem[0]);
+
+
 
     if (x)
       {

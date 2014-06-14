@@ -336,7 +336,7 @@ namespace netgen
 	if(infile.good())
 	  {
 	    infile >> auxstring;
-	    if(auxstring == "csgsurfaces")
+	    if(geometry && auxstring == "csgsurfaces")
 	      geometry -> LoadSurfaces(infile);
 	  }
       }
@@ -2137,7 +2137,7 @@ namespace netgen
         cout << "Snapshot to file '" << filename << "'" << endl;
 
         int w = Togl_Width (togl);
-        w = int((w + 1) / 4) * 4 + 4;
+        // w = int((w + 1) / 4) * 4 + 4;
         int h = Togl_Height (togl);
 
         // unsigned char * buffer = new unsigned char[w*h*4];
@@ -2148,7 +2148,7 @@ namespace netgen
         struct jpeg_error_mgr jerr;
         FILE *outfile = fopen(filename,"wb");
         JSAMPROW row_pointer[1];
-        int row_stride, quality = 85; // 1...100
+        int row_stride, quality = 100; // 1...100
 
         cinfo.err = jpeg_std_error( &jerr );
         jpeg_create_compress( &cinfo );
@@ -2161,7 +2161,7 @@ namespace netgen
         cinfo.in_color_space = JCS_RGB;
 
         jpeg_set_defaults( &cinfo );
-        jpeg_set_quality( &cinfo, quality, TRUE );
+        jpeg_set_quality( &cinfo, quality, FALSE );   // TRUE
         jpeg_start_compress( &cinfo, TRUE );
 
         row_stride = 3*w;
@@ -2326,7 +2326,10 @@ namespace netgen
         context->bit_rate = bitrate;
         context->width = nx;
         context->height = ny;
-	context->time_base = (AVRational){ 1, 25 };
+        AVRational s;
+        s.num = 1;
+        s.den = 25;
+        context->time_base = s;
         context->gop_size = gopsize;
         context->max_b_frames = bframes;
         context->pix_fmt = PIX_FMT_YUV420P;
@@ -2761,6 +2764,10 @@ void Ng_SetMouseEventHandler (netgen::MouseEventHandler * handler)
   vsmesh.SetMouseEventHandler (handler);
 }
 
+void Ng_SetUserVisualizationObject (netgen::UserVisualizationObject * vis)
+{
+  vssolution.AddUserVisualizationObject (vis);
+}
 
 void Ng_ClearSolutionData ()
 {
@@ -2943,8 +2950,13 @@ void PlayAnimFile(const char* name, int speed, int maxcnt)
       atoi (Tcl_GetVar (interp, "::viewoptions.drawpyramids", TCL_GLOBAL_ONLY));
     vispar.drawhexes =
       atoi (Tcl_GetVar (interp, "::viewoptions.drawhexes", TCL_GLOBAL_ONLY));
+    /*
     vispar.shrink =
       atof (Tcl_GetVar (interp, "::viewoptions.shrink", TCL_GLOBAL_ONLY));
+    */
+    double hshrink = atof (Tcl_GetVar (interp, "::viewoptions.shrink", TCL_GLOBAL_ONLY));
+    if (hshrink != vispar.shrink)
+      { vispar.shrink = hshrink; vispar.clipping.timestamp = NextTimeStamp();}
     vispar.drawidentified =
       atoi (Tcl_GetVar (interp, "::viewoptions.drawidentified", TCL_GLOBAL_ONLY));
     vispar.drawpointnumbers =

@@ -7,8 +7,6 @@
 #include "nginterface.h"
 #include "nginterface_v2.hpp"
 
-
-
 namespace netgen
 {
 #include "writeuser.hpp"
@@ -42,6 +40,39 @@ namespace netgen
     Ng_LoadMesh (filename.c_str());
     mesh = netgen::mesh.Ptr();
   }
+
+  void Ngx_Mesh :: LoadMesh (istream & ist)
+  {
+    netgen::mesh.Reset (new Mesh);
+    netgen::mesh -> Load (ist);
+    mesh = netgen::mesh.Ptr();
+  }
+
+  void Ngx_Mesh :: SaveMesh (ostream & ost) const
+  {
+    mesh -> Save (ost);
+  }
+
+  void Ngx_Mesh :: DoArchive (ngstd::Archive & archive)
+  {
+
+    if (archive.Output())
+      {
+        stringstream str;
+        SaveMesh (str);
+        string st = str.str();
+        archive & st;
+      }
+    else
+      {
+        string st;
+        archive & st;
+        stringstream str(st);
+        LoadMesh (str);
+      }
+  }
+
+
 
   /*
   Ngx_Mesh :: Ngx_Mesh (Mesh * amesh)

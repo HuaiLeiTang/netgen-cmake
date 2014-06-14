@@ -97,9 +97,9 @@ namespace netgen
     SetLight();
 
     glPushMatrix();
-    glMultMatrixf (transformationmat);
+    glMultMatrixd (transformationmat);
 
-    GLdouble projmat[16];
+    GLdouble projmat[16];                 // brauchen wir das ?
     glGetDoublev (GL_PROJECTION_MATRIX, projmat);
 
 
@@ -1561,7 +1561,8 @@ namespace netgen
 	lock -> Lock();
       }
 
-    if (edgetimestamp > mesh->GetTimeStamp () && vispar.shrink == 1)
+    if (edgetimestamp > mesh->GetTimeStamp () && vispar.drawtetsdomain == 0 
+	&& vispar.shrink == 1)
       return;
 
     edgetimestamp = NextTimeStamp();
@@ -1585,6 +1586,13 @@ namespace netgen
     for (int i = 1; i <= mesh->GetNSeg(); i++)
       {
 	const Segment & seg = mesh->LineSegment(i);
+
+#ifdef PARALLEL
+	if (ntasks > 1 && 
+	    vispar.drawtetsdomain && 
+	    (vispar.drawtetsdomain != seg.GetPartition())) continue;
+#endif
+
 	const Point3d & p1 = (*mesh)[seg[0]];
 	const Point3d & p2 = (*mesh)[seg[1]];
 
@@ -1722,7 +1730,6 @@ namespace netgen
 
   void VisualSceneMesh :: BuildTetList()
   {
-
     if (tettimestamp > mesh->GetTimeStamp () &&
 	tettimestamp > vispar.clipping.timestamp )
       return;
@@ -3093,10 +3100,32 @@ namespace netgen
 			filledlist,selelement,selface,seledge,selpoint,selpoint2,locpi);
 
     
-    if (user_me_handler)
+
+
+    GLdouble modelview[16], projection[16];
+    GLint viewport[4];
+    GLdouble result[3];
+
+    glGetDoublev(GL_PROJECTION_MATRIX, &projection[0]); 
+    glGetIntegerv(GL_VIEWPORT, &viewport[0]);
+
+    int hy = viewport[3]-py;
+
+    GLfloat pz;
+    // cout << "x, y = " << px << ", " << hy << endl;
+    glReadPixels (px, hy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pz);
+    cout << "pz = " << pz << endl;    
+    gluUnProject(px, hy, pz, transformationmat, projection, viewport,
+                 &result[0], &result[1], &result[2]);
+
+    if (pz < 1.0)
+      cout << "point : " << result[0] << ", " << result[1] << ", " << result[2] << endl;
+    
+
+    if (user_me_handler && pz < 1.0)
       {
 	if (selelement != -1)
-	  user_me_handler -> DblClick (selelement-1);
+	  user_me_handler -> DblClick (selelement-1, result[0], result[1], result[2]);
       }
 
     selecttimestamp = NextTimeStamp();
@@ -3278,7 +3307,7 @@ namespace netgen
 
   void MouseDblClickSelect (const int px, const int py,
 			    const GLdouble * clipplane, const GLdouble backcolor,
-			    const float * transformationmat,
+			    const double * transformationmat,
 			    const Point3d & center,
 			    const double rad,
 			    const int displaylist,
@@ -3317,7 +3346,7 @@ namespace netgen
     glMatrixMode (GL_MODELVIEW);
 
     glPushMatrix();
-    glMultMatrixf (transformationmat);
+    glMultMatrixd (transformationmat);
 
 
     //  SetClippingPlane();

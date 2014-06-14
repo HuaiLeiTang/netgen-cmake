@@ -362,7 +362,7 @@ namespace netgen
     SetLight();
     
     glPushMatrix();
-    glMultMatrixf (transformationmat);
+    glMultMatrixd (transformationmat);
 
     glMatrixMode (GL_MODELVIEW); 
     
@@ -579,6 +579,12 @@ namespace netgen
         glDisable(GL_CLIP_PLANE0);
         glCallList (clipplane_isolinelist);
       }
+
+
+    // user visualization
+    
+    for (int i = 0; i < user_vis.Size(); i++)
+      user_vis[i] -> Draw();
 
     glPopMatrix();
     
@@ -2397,8 +2403,8 @@ namespace netgen
     // bool considerElem;
 
     bool hasit = false;
-#ifdef max;
-      #undef max;
+#ifdef max
+      #undef max
 #endif
     minv = numeric_limits<double>::max();
     maxv = -numeric_limits<double>::max();
@@ -2413,7 +2419,6 @@ namespace netgen
               NgProfiler::RegionTimer reg1 (timer1);
               
               int ne = mesh->GetNE();
-    
               double hminv = numeric_limits<double>::max();
               double hmaxv = -numeric_limits<double>::max();
               bool hhasit = false;
@@ -2717,8 +2722,9 @@ namespace netgen
       {
       case SOL_VIRTUALFUNCTION:
         {
+	  val = 0.0;
           double values[20];
-          ok = data->solclass->GetValue (elnr, lam1, lam2, lam3, values);
+	  ok = data->solclass->GetValue (elnr, lam1, lam2, lam3, values);
 
           val = values[comp-1];
           return ok;
@@ -3656,7 +3662,7 @@ namespace netgen
   {
     static int timer_vals = NgProfiler::CreateTimer ("ClipPlaneTrigs - vertex values");
     static int timer1 = NgProfiler::CreateTimer ("ClipPlaneTrigs1");
-    static int timer1a = NgProfiler::CreateTimer ("ClipPlaneTrigs1a");
+    // static int timer1a = NgProfiler::CreateTimer ("ClipPlaneTrigs1a");
     // static int timer2 = NgProfiler::CreateTimer ("ClipPlaneTrigs2");
     static int timer3 = NgProfiler::CreateTimer ("ClipPlaneTrigs3");
     static int timer4 = NgProfiler::CreateTimer ("ClipPlaneTrigs4");
@@ -4175,8 +4181,8 @@ namespace netgen
 		vals[ii] = ExtractValue(sol, scalcomp, &mvalues[ii*sol->components]);
 	    else
 	      for (int ii = 0; ii < nlp; ii++)
-		valsc[ii] = complex<double> (mvalues[ii*sol->components],
-					     mvalues[ii*sol->components+1]);
+		valsc[ii] = complex<double> (mvalues[ii*sol->components + scalcomp-1],
+					     mvalues[ii*sol->components + scalcomp]);
 	  }
 	
 	if(ok)

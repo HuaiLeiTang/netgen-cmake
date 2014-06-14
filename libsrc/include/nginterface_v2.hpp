@@ -12,7 +12,6 @@
   C++ interface to Netgen
 */
 
-
 namespace netgen
 {
   struct T_EDGE2
@@ -165,6 +164,10 @@ namespace netgen
     // Ngx_Mesh(class Mesh * amesh) : mesh(amesh) { ; }
     Ngx_Mesh(class Mesh * amesh = NULL);
     void LoadMesh (const string & filename);
+
+    void LoadMesh (istream & str);
+    void SaveMesh (ostream & str) const;
+    void DoArchive (ngstd::Archive & archive);
 
     virtual ~Ngx_Mesh();
 
